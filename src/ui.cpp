@@ -55,8 +55,15 @@ static TextView *lyricView;  // Will point to lyricsView
 static ScrolledWindow *lyricbar;  // Will point to mainVBox
 static RefPtr<TextBuffer> refBuffer;  // Will point to lyricsBuffer
 
-static RefPtr<TextTag> tagItalic, tagBold, tagLarge, tagCenter, tagSmall, tagForegroundColorHighlight,tagForegroundColorRegular, tagLeftmargin, tagRightmargin, tagRegular;
+static RefPtr<TextTag> tagItalic, tagBoldHeader, tagBoldLyrics, tagLarge, tagCenter, tagSmall, tagForegroundColorHighlight, tagForegroundColorRegular, tagLeftmargin, tagRightmargin, tagRegular;
 static vector<RefPtr<TextTag>> tagsTitle, tagsArtist, tagsSyncline, tagsNosyncline, tagPadding;
+
+// Lyrics buffer state for stable highlight/scroll
+static DB_playItem_t *lyrics_buffer_track = nullptr;
+static int lyrics_padding_lines = 0;
+static int last_highlight_line = -1;
+static int cached_lyrics_size = -1;
+static bool lyrics_buffer_ready = false;
 
 bool isValidHexaCode(string str) {
     regex hexaCode("^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$");
@@ -122,6 +129,87 @@ static void start_smooth_scroll(double target) {
 		sigc::bind(sigc::ptr_fun(&smooth_scroll_tick), target),
 		SCROLL_ANIMATION_INTERVAL
 	);
+}
+
+static void update_highlight_line(int buffer_line) {
+	if (!lyricsBuffer) {
+		return;
+	}
+
+	int line_count = lyricsBuffer->get_line_count();
+	if (buffer_line < 0 || buffer_line >= line_count) {
+		return;
+	}
+
+	auto start_iter = lyricsBuffer->get_iter_at_line(buffer_line);
+	TextIter end_iter;
+	if (buffer_line + 1 < line_count) {
+		end_iter = lyricsBuffer->get_iter_at_line(buffer_line + 1);
+	} else {
+		end_iter = lyricsBuffer->end();
+	}
+
+	lyricsBuffer->remove_tag(tagForegroundColorRegular, start_iter, end_iter);
+	if (deadbeef->conf_get_int("lyricbar.bold", 1) == 1) {
+		lyricsBuffer->apply_tag(tagBoldLyrics, start_iter, end_iter);
+	}
+	lyricsBuffer->apply_tag(tagForegroundColorHighlight, start_iter, end_iter);
+}
+
+static void clear_highlight_line(int buffer_line) {
+	if (!lyricsBuffer) {
+		return;
+	}
+
+	int line_count = lyricsBuffer->get_line_count();
+	if (buffer_line < 0 || buffer_line >= line_count) {
+		return;
+	}
+
+	auto start_iter = lyricsBuffer->get_iter_at_line(buffer_line);
+	TextIter end_iter;
+	if (buffer_line + 1 < line_count) {
+		end_iter = lyricsBuffer->get_iter_at_line(buffer_line + 1);
+	} else {
+		end_iter = lyricsBuffer->end();
+	}
+
+	if (deadbeef->conf_get_int("lyricbar.bold", 1) == 1) {
+		lyricsBuffer->remove_tag(tagBoldLyrics, start_iter, end_iter);
+	}
+	lyricsBuffer->remove_tag(tagForegroundColorHighlight, start_iter, end_iter);
+	lyricsBuffer->apply_tag(tagForegroundColorRegular, start_iter, end_iter);
+}
+
+static void schedule_scroll_to_line(int buffer_line) {
+	signal_idle().connect_once([buffer_line]() {
+		if (widgets_destroyed.load() || !lyricsView || !lyricsScrolled || !lyricsBuffer) {
+			return;
+		}
+
+		if (buffer_line < 0 || buffer_line >= lyricsBuffer->get_line_count()) {
+			return;
+		}
+
+		auto iter = lyricsBuffer->get_iter_at_line(buffer_line);
+		Gdk::Rectangle rect;
+		lyricsView->get_iter_location(iter, rect);
+
+		double line_center = (double)rect.get_y() + rect.get_height() / 2.0;
+
+		auto vadj = lyricsScrolled->get_vadjustment();
+		double page = vadj->get_page_size();
+		double lower = vadj->get_lower();
+		double upper = vadj->get_upper();
+		double target = line_center - page / 2.0;
+
+		double maxv = upper - page;
+		if (maxv < lower) maxv = lower;
+		if (target < lower) target = lower;
+		if (target > maxv) target = maxv;
+
+		start_smooth_scroll(target);
+	});
 }
 
 // "Size" lyrics to be able to make lines "dissapear" on top.
@@ -296,103 +384,67 @@ void set_lyrics_with_scroll(DB_playItem_t *track, const vector<string>& all_lyri
 		headerBuffer->insert_with_tags(headerBuffer->begin(), title, tagsTitle);
 		headerBuffer->insert_with_tags(headerBuffer->end(), "\n" + artist, tagsArtist);
 
-		// Update LYRICS buffer (scrollable)
-		lyricsBuffer->erase(lyricsBuffer->begin(), lyricsBuffer->end());
+		bool needs_rebuild = false;
+		if (!lyrics_buffer_ready || track != lyrics_buffer_track) {
+			needs_rebuild = true;
+		}
+		if (cached_lyrics_size != (int)all_lyrics.size()) {
+			needs_rebuild = true;
+		}
 
-		// Calculate padding: add empty lines to fill half viewport before/after
-		// This ensures first and last lines can be centered
-		int padding_lines = 0;
-		if (lyricsScrolled && lyricsView) {
-			// Get viewport height
-			int viewport_height = lyricsScrolled->get_allocation().get_height();
+		if (needs_rebuild) {
+			lyricsBuffer->erase(lyricsBuffer->begin(), lyricsBuffer->end());
+			lyrics_padding_lines = 0;
 
-			// Estimate line height from a sample line
-			if (all_lyrics.size() > 0) {
-				// Insert a temporary line to measure height
+			int viewport_height = 0;
+			if (lyricsScrolled) {
+				viewport_height = lyricsScrolled->get_allocation().get_height();
+			}
+
+			int line_height = 0;
+			if (!all_lyrics.empty()) {
 				lyricsBuffer->insert_with_tags(lyricsBuffer->begin(), "X\n", tagsNosyncline);
 				Gdk::Rectangle rect;
 				lyricsView->get_iter_location(lyricsBuffer->get_iter_at_line(0), rect);
-				int line_height = rect.get_height();
-
-				// Clear the temp line
+				line_height = rect.get_height();
 				lyricsBuffer->erase(lyricsBuffer->begin(), lyricsBuffer->end());
-
-				// Calculate how many lines fit in half viewport
-				if (line_height > 0) {
-					padding_lines = (viewport_height / 2) / line_height + 1;
-				}
 			}
-		}
 
-		// Fallback: use reasonable default if calculation fails
-		if (padding_lines <= 0) {
-			padding_lines = 10;  // Default to ~10 lines of padding
-		}
-
-		// Insert padding before lyrics
-		for (int i = 0; i < padding_lines; i++) {
-			lyricsBuffer->insert_with_tags(lyricsBuffer->end(), "\n", tagsNosyncline);
-		}
-
-		// Insert all lyrics with appropriate tags
-		for (size_t i = 0; i < all_lyrics.size(); i++) {
-			if ((int)i == current_line_index) {
-				// Current line - highlighted
-				lyricsBuffer->insert_with_tags(lyricsBuffer->end(), all_lyrics[i] + "\n", tagsSyncline);
-			} else {
-				// Other lines - normal
-				lyricsBuffer->insert_with_tags(lyricsBuffer->end(), all_lyrics[i] + "\n", tagsNosyncline);
+			if (viewport_height > 0 && line_height > 0) {
+				lyrics_padding_lines = (viewport_height / 2) / line_height + 1;
 			}
+			if (lyrics_padding_lines <= 0) {
+				lyrics_padding_lines = 10;
+			}
+
+			for (int i = 0; i < lyrics_padding_lines; i++) {
+				lyricsBuffer->insert_with_tags(lyricsBuffer->end(), "\n", tagsNosyncline);
+			}
+
+			for (const auto &line : all_lyrics) {
+				lyricsBuffer->insert_with_tags(lyricsBuffer->end(), line + "\n", tagsNosyncline);
+			}
+
+			for (int i = 0; i < lyrics_padding_lines; i++) {
+				lyricsBuffer->insert_with_tags(lyricsBuffer->end(), "\n", tagsNosyncline);
+			}
+
+			lyrics_buffer_track = track;
+			lyrics_buffer_ready = true;
+			cached_lyrics_size = static_cast<int>(all_lyrics.size());
+			last_highlight_line = -1;
 		}
 
-		// Insert padding after lyrics
-		for (int i = 0; i < padding_lines; i++) {
-			lyricsBuffer->insert_with_tags(lyricsBuffer->end(), "\n", tagsNosyncline);
+		if (last_highlight_line >= 0) {
+			clear_highlight_line(last_highlight_line);
+			last_highlight_line = -1;
 		}
 
-		// Scroll lyrics to center current line
-		// Schedule via idle to ensure layout is complete (GTK3 best practice)
 		if (current_line_index >= 0 && current_line_index < (int)all_lyrics.size()) {
-			signal_idle().connect_once([current_line_index, padding_lines]() {
-				// Check widgets still valid
-				if (widgets_destroyed.load() || !lyricsView || !lyricsScrolled || !lyricsBuffer) {
-					return;
-				}
-
-				// Get iterator at the current lyric line (accounting for padding offset)
-				int buffer_line = padding_lines + current_line_index;
-				auto iter = lyricsBuffer->get_iter_at_line(buffer_line);
-
-				// Get line position in buffer coordinates
-				Gdk::Rectangle rect;
-				lyricsView->get_iter_location(iter, rect);
-
-				// Convert buffer coords to widget coords
-				int wx, wy;
-				lyricsView->buffer_to_window_coords(TEXT_WINDOW_WIDGET, rect.get_x(), rect.get_y(), wx, wy);
-
-				// Calculate line center in widget coordinates
-				double line_center = (double)wy + rect.get_height() / 2.0;
-
-				// Get vertical adjustment
-				auto vadj = lyricsScrolled->get_vadjustment();
-				double page = vadj->get_page_size();
-				double lower = vadj->get_lower();
-				double upper = vadj->get_upper();
-
-				// Calculate target scroll position to center the line
-				// target = line_center - page/2
-				double target = line_center - page / 2.0;
-
-				// Clamp to valid range [lower, upper - page]
-				double maxv = upper - page;
-				if (maxv < lower) maxv = lower;
-				if (target < lower) target = lower;
-				if (target > maxv) target = maxv;
-
-				// Start smooth scroll animation to target
-				start_smooth_scroll(target);
-			});
+			int buffer_line = lyrics_padding_lines + current_line_index;
+			update_highlight_line(buffer_line);
+			last_highlight_line = buffer_line;
+		schedule_scroll_to_line(buffer_line);
 		}
 	});
 }
@@ -427,9 +479,9 @@ Justification get_justification() {
 	tagItalic->property_style() = Pango::STYLE_ITALIC;
 	tagItalic->property_scale() = deadbeef->conf_get_float("lyricbar.fontscale", 1);
 
-	tagBold = headerBuffer->create_tag();
-	tagBold->property_scale() = deadbeef->conf_get_float("lyricbar.fontscale", 1);
-	tagBold->property_weight() = Pango::WEIGHT_BOLD;
+	tagBoldHeader = headerBuffer->create_tag();
+	tagBoldHeader->property_scale() = deadbeef->conf_get_float("lyricbar.fontscale", 1);
+	tagBoldHeader->property_weight() = Pango::WEIGHT_BOLD;
 
 	tagLarge = headerBuffer->create_tag();
 	tagLarge->property_scale() = 1.2*deadbeef->conf_get_float("lyricbar.fontscale", 1);
@@ -437,7 +489,7 @@ Justification get_justification() {
 	tagCenter = headerBuffer->create_tag();
 	tagCenter->property_justification() = JUSTIFY_CENTER;
 
-	tagsTitle = {tagLarge, tagBold, tagCenter};
+	tagsTitle = {tagLarge, tagBoldHeader, tagCenter};
 	tagsArtist = {tagItalic, tagCenter};
 
 	// Create tags for LYRICS buffer
@@ -449,6 +501,10 @@ Justification get_justification() {
 
 	tagRightmargin = lyricsBuffer->create_tag();
 	tagRightmargin->property_right_margin() = deadbeef->conf_get_float("lyricbar.border", 22)*deadbeef->conf_get_float("lyricbar.fontscale", 1);
+
+	tagBoldLyrics = lyricsBuffer->create_tag();
+	tagBoldLyrics->property_scale() = deadbeef->conf_get_float("lyricbar.fontscale", 1);
+	tagBoldLyrics->property_weight() = Pango::WEIGHT_BOLD;
 
 	tagSmall = lyricsBuffer->create_tag();
 	tagSmall->property_scale() = 0.0001;
@@ -470,10 +526,10 @@ Justification get_justification() {
 		tagForegroundColorRegular->property_foreground() = "#000000";
 	}
 
-	tagsSyncline = {tagBold, tagForegroundColorHighlight};
+	tagsSyncline = {tagBoldLyrics, tagForegroundColorHighlight};
 
 	if (deadbeef->conf_get_int("lyricbar.bold", 1) == 1) {
-		tagsSyncline = {tagBold, tagForegroundColorHighlight};
+		tagsSyncline = {tagBoldLyrics, tagForegroundColorHighlight};
 		tagsNosyncline = {tagRegular, tagLeftmargin, tagRightmargin, tagForegroundColorRegular};
 	}
 	else{
@@ -655,7 +711,8 @@ void lyricbar_destroy() {
 	// Reset tag RefPtrs
 	tagLarge.reset();
 	tagSmall.reset();
-	tagBold.reset();
+	tagBoldHeader.reset();
+	tagBoldLyrics.reset();
 	tagItalic.reset();
 	tagRightmargin.reset();
 	tagLeftmargin.reset();
@@ -671,6 +728,11 @@ void lyricbar_destroy() {
 	lyricView = nullptr;
 	lyricbar = nullptr;
 	refBuffer.reset();
+	lyrics_buffer_track = nullptr;
+	lyrics_buffer_ready = false;
+	last_highlight_line = -1;
+	lyrics_padding_lines = 0;
+	cached_lyrics_size = -1;
 
 	// Reset flag for potential re-initialization
 	widgets_destroyed.store(false);

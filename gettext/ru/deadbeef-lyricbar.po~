@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-13 13:11+0100\n"
+"POT-Creation-Date: 2026-01-24 21:17+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -145,11 +145,11 @@ msgstr ""
 msgid "Edit"
 msgstr ""
 
-#: src/ui.cpp:147 src/ui.cpp:248 src/ui.cpp:295 src/utils.cpp:677
+#: src/ui.cpp:237 src/ui.cpp:334 src/ui.cpp:381 src/utils.cpp:677
 msgid "Unknown Artist"
 msgstr ""
 
-#: src/ui.cpp:148 src/ui.cpp:249 src/ui.cpp:296 src/utils.cpp:678
+#: src/ui.cpp:238 src/ui.cpp:335 src/ui.cpp:382 src/utils.cpp:678
 msgid "Unknown Title"
 msgstr ""
 
