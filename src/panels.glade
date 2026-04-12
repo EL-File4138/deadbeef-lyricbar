@@ -375,6 +375,44 @@
             <property name="column-spacing">8</property>
             <property name="baseline-row">4</property>
             <child>
+              <object class="GtkLabel" id="Light_mode_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="label" translatable="yes">Claro</property>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="Link_dark_colors">
+                <property name="label" translatable="yes">Vincular</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Propagate light mode colors to dark mode using the theme conversion</property>
+                <property name="halign">center</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="Dark_mode_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="label" translatable="yes">Oscuro</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkColorButton" id="Background_color">
                 <property name="name">Background_color</property>
                 <property name="visible">True</property>
@@ -387,7 +425,21 @@
               <packing>
                 <property name="left-attach">3</property>
                 <property name="top-attach">1</property>
-                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkColorButton" id="Dark_background_color">
+                <property name="name">Dark_background_color</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="margin-top">5</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -436,7 +488,20 @@
               <packing>
                 <property name="left-attach">3</property>
                 <property name="top-attach">2</property>
-                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkColorButton" id="Dark_text_color">
+                <property name="name">Dark_text_color</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
@@ -452,7 +517,20 @@
               <packing>
                 <property name="left-attach">3</property>
                 <property name="top-attach">3</property>
-                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkColorButton" id="Dark_highlight_color">
+                <property name="name">Dark_highlight_color</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>

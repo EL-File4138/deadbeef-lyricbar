@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-24 21:21+0100\n"
+"POT-Creation-Date: 2026-04-12 16:14+0200\n"
 "PO-Revision-Date: 2025-08-19 12:36+0200\n"
 "Last-Translator: AsVHEn <asvhen@gmail.com>\n"
 "Language-Team: Español \n"
@@ -17,140 +17,152 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/config_dialog.cpp:267
+#: src/config_dialog.cpp:313
 msgid "Background color: "
 msgstr "Color de fondo: "
 
-#: src/config_dialog.cpp:268
+#: src/config_dialog.cpp:314
 msgid "Text color: "
 msgstr "Color de texto: "
 
-#: src/config_dialog.cpp:269
+#: src/config_dialog.cpp:315
 msgid "Highlight color: "
 msgstr "Color resaltado: "
 
-#: src/config_dialog.cpp:270
+#: src/config_dialog.cpp:316
+msgid "Light"
+msgstr "Claro"
+
+#: src/config_dialog.cpp:317
+msgid "Dark"
+msgstr "Oscuro"
+
+#: src/config_dialog.cpp:318
 msgid "Align: "
 msgstr "Alineación: "
 
-#: src/config_dialog.cpp:271
+#: src/config_dialog.cpp:319
 msgid "Save to: "
 msgstr "Guardar en: "
 
-#: src/config_dialog.cpp:272
+#: src/config_dialog.cpp:320
 msgid "Edge: "
 msgstr "Borde: "
 
-#: src/config_dialog.cpp:273
+#: src/config_dialog.cpp:321
 msgid "Highlight line height %: "
 msgstr "Altura línea resaltada en %: "
 
-#: src/config_dialog.cpp:275
+#: src/config_dialog.cpp:322
+msgid "Link"
+msgstr "Vincular"
+
+#: src/config_dialog.cpp:324
 msgid "Bold"
 msgstr "Negrita"
 
-#: src/config_dialog.cpp:276
+#: src/config_dialog.cpp:325
 msgid "Left"
 msgstr "Izquierda"
 
-#: src/config_dialog.cpp:277
+#: src/config_dialog.cpp:326
 msgid "Center"
 msgstr "Centro"
 
-#: src/config_dialog.cpp:278
+#: src/config_dialog.cpp:327
 msgid "Right"
 msgstr "Derecha"
 
-#: src/config_dialog.cpp:279
+#: src/config_dialog.cpp:328
 msgid "IDTag"
 msgstr "IDTag"
 
-#: src/config_dialog.cpp:280
+#: src/config_dialog.cpp:329
 msgid "File"
 msgstr "Archivo"
 
-#: src/config_dialog.cpp:281
+#: src/config_dialog.cpp:330
 msgid "No save"
 msgstr "No guardar"
 
-#: src/config_dialog.cpp:283
+#: src/config_dialog.cpp:332
 msgid "Config"
 msgstr "Configuración"
 
-#: src/config_dialog.cpp:556 src/config_dialog.cpp:566
+#: src/config_dialog.cpp:612 src/config_dialog.cpp:622
 msgid "Lyrics preview"
 msgstr "Ventana de previsualización de las letras"
 
-#: src/config_dialog.cpp:557
+#: src/config_dialog.cpp:613
 msgid "Artist: "
 msgstr "Artista: "
 
-#: src/config_dialog.cpp:558
+#: src/config_dialog.cpp:614
 msgid "Song: "
 msgstr "Canción: "
 
-#: src/config_dialog.cpp:559
+#: src/config_dialog.cpp:615
 msgid "Album "
 msgstr "Álbum: "
 
-#: src/config_dialog.cpp:560 src/config_dialog.cpp:561
+#: src/config_dialog.cpp:616 src/config_dialog.cpp:617
 msgid "Search"
 msgstr "Buscar"
 
-#: src/config_dialog.cpp:562
+#: src/config_dialog.cpp:618
 msgid "Artist"
 msgstr "Artista"
 
-#: src/config_dialog.cpp:563
+#: src/config_dialog.cpp:619
 msgid "Song"
 msgstr "Canción"
 
-#: src/config_dialog.cpp:564
+#: src/config_dialog.cpp:620
 msgid "Album"
 msgstr "Álbum"
 
-#: src/config_dialog.cpp:565
+#: src/config_dialog.cpp:621
 msgid "Source"
 msgstr "Origen"
 
-#: src/config_dialog.cpp:856
+#: src/config_dialog.cpp:912
 #, fuzzy
 msgid "Synchronization "
 msgstr "Sincronización "
 
-#: src/config_dialog.cpp:857
+#: src/config_dialog.cpp:913
 msgid "Sync or not "
 msgstr "Marcas de tiempo "
 
-#: src/config_dialog.cpp:858
+#: src/config_dialog.cpp:914
 msgid "+ 0.1 seconds"
 msgstr "+ 0.1 segundos"
 
-#: src/config_dialog.cpp:859
+#: src/config_dialog.cpp:915
 msgid "- 0.1 seconds"
 msgstr "- 0.1 segundos"
 
-#: src/config_dialog.cpp:860
+#: src/config_dialog.cpp:916
 msgid "Apply offset"
 msgstr "Aplicar offset"
 
-#: src/config_dialog.cpp:861
+#: src/config_dialog.cpp:917
 msgid "Insert timestamp"
 msgstr "Insertar marca de tiempo"
 
-#: src/config_dialog.cpp:862
+#: src/config_dialog.cpp:918
 msgid "Synced lyrics"
 msgstr "Letras sincronizadas"
 
-#: src/config_dialog.cpp:863
+#: src/config_dialog.cpp:919
 msgid "Edit"
 msgstr "Editar"
 
-#: src/ui.cpp:234 src/ui.cpp:331 src/ui.cpp:378 src/utils.cpp:677
+#: src/ui.cpp:555 src/ui.cpp:652 src/ui.cpp:699 src/utils.cpp:677
 msgid "Unknown Artist"
 msgstr "Artista desconocido"
 
-#: src/ui.cpp:235 src/ui.cpp:332 src/ui.cpp:379 src/utils.cpp:678
+#: src/ui.cpp:556 src/ui.cpp:653 src/ui.cpp:700 src/utils.cpp:678
 msgid "Unknown Title"
 msgstr "Título desconocido"
 

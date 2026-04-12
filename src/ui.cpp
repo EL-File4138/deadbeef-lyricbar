@@ -6,11 +6,15 @@
 #include <vector>
 #include <regex>
 #include <gtkmm.h>
+#include <gio/gio.h>
 #include <time.h>
 #include <string>
 #include <future>
 #include <chrono>
 #include <atomic>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
 
 using namespace std;
 using namespace Gtk;
@@ -57,6 +61,11 @@ static RefPtr<TextBuffer> refBuffer;  // Will point to lyricsBuffer
 
 static RefPtr<TextTag> tagItalic, tagBoldHeader, tagBoldLyrics, tagLarge, tagCenter, tagSmall, tagForegroundColorHighlight, tagForegroundColorRegular, tagLeftmargin, tagRightmargin, tagRegular;
 static vector<RefPtr<TextTag>> tagsTitle, tagsArtist, tagsSyncline, tagsNosyncline, tagPadding;
+static RefPtr<Gtk::CssProvider> cssProvider;
+
+static GSettings *interface_settings = nullptr;
+static gulong interface_settings_handler = 0;
+static gulong gtk_theme_name_handler = 0;
 
 // Lyrics buffer state for stable highlight/scroll
 static DB_playItem_t *lyrics_buffer_track = nullptr;
@@ -64,6 +73,318 @@ static int lyrics_padding_lines = 0;
 static int last_highlight_line = -1;
 static int cached_lyrics_size = -1;
 static bool lyrics_buffer_ready = false;
+
+static const char *default_light_color(ThemePaletteRole role) {
+	switch (role) {
+		case ThemePaletteRole::Background:
+			return "#F6F6F6";
+		case ThemePaletteRole::Highlight:
+			return "#571c1c";
+		case ThemePaletteRole::Regular:
+			return "#000000";
+	}
+
+	return "#000000";
+}
+
+static const char *legacy_color_key(ThemePaletteRole role) {
+	switch (role) {
+		case ThemePaletteRole::Background:
+			return "lyricbar.backgroundcolor";
+		case ThemePaletteRole::Highlight:
+			return "lyricbar.highlightcolor";
+		case ThemePaletteRole::Regular:
+			return "lyricbar.regularcolor";
+	}
+
+	return "lyricbar.regularcolor";
+}
+
+static const char *palette_color_key(bool dark_mode, ThemePaletteRole role) {
+	switch (role) {
+		case ThemePaletteRole::Background:
+			return dark_mode ? "lyricbar.dark.backgroundcolor" : "lyricbar.light.backgroundcolor";
+		case ThemePaletteRole::Highlight:
+			return dark_mode ? "lyricbar.dark.highlightcolor" : "lyricbar.light.highlightcolor";
+		case ThemePaletteRole::Regular:
+			return dark_mode ? "lyricbar.dark.regularcolor" : "lyricbar.light.regularcolor";
+	}
+
+	return "lyricbar.light.regularcolor";
+}
+
+static double clamp_double(double value, double min_value, double max_value) {
+	return max(min_value, min(value, max_value));
+}
+
+static bool parse_hex_color(const string& hex_color, double& red, double& green, double& blue) {
+	if (!isValidHexaCode(hex_color)) {
+		return false;
+	}
+
+	int red_int = 0;
+	int green_int = 0;
+	int blue_int = 0;
+	sscanf(hex_color.c_str(), "#%02x%02x%02x", &red_int, &green_int, &blue_int);
+	red = red_int / 255.0;
+	green = green_int / 255.0;
+	blue = blue_int / 255.0;
+	return true;
+}
+
+static string rgb_to_hex(double red, double green, double blue) {
+	char hex_color[8];
+	std::snprintf(
+		hex_color,
+		sizeof hex_color,
+		"#%02x%02x%02x",
+		(int)round(clamp_double(red, 0.0, 1.0) * 255.0),
+		(int)round(clamp_double(green, 0.0, 1.0) * 255.0),
+		(int)round(clamp_double(blue, 0.0, 1.0) * 255.0)
+	);
+	return hex_color;
+}
+
+static void rgb_to_hsl(double red, double green, double blue, double& hue, double& saturation, double& lightness) {
+	double max_channel = max(red, max(green, blue));
+	double min_channel = min(red, min(green, blue));
+	double delta = max_channel - min_channel;
+
+	lightness = (max_channel + min_channel) / 2.0;
+
+	if (delta == 0.0) {
+		hue = 0.0;
+		saturation = 0.0;
+		return;
+	}
+
+	saturation = delta / (1.0 - abs(2.0 * lightness - 1.0));
+
+	if (max_channel == red) {
+		hue = fmod((green - blue) / delta, 6.0);
+	}
+	else if (max_channel == green) {
+		hue = ((blue - red) / delta) + 2.0;
+	}
+	else {
+		hue = ((red - green) / delta) + 4.0;
+	}
+
+	hue *= 60.0;
+	if (hue < 0.0) {
+		hue += 360.0;
+	}
+}
+
+static double hue_to_rgb(double p, double q, double t) {
+	if (t < 0.0) {
+		t += 1.0;
+	}
+	if (t > 1.0) {
+		t -= 1.0;
+	}
+	if (t < 1.0 / 6.0) {
+		return p + (q - p) * 6.0 * t;
+	}
+	if (t < 1.0 / 2.0) {
+		return q;
+	}
+	if (t < 2.0 / 3.0) {
+		return p + (q - p) * (2.0 / 3.0 - t) * 6.0;
+	}
+	return p;
+}
+
+static void hsl_to_rgb(double hue, double saturation, double lightness, double& red, double& green, double& blue) {
+	if (saturation == 0.0) {
+		red = lightness;
+		green = lightness;
+		blue = lightness;
+		return;
+	}
+
+	double hue_normalized = hue / 360.0;
+	double q = lightness < 0.5 ? lightness * (1.0 + saturation) : lightness + saturation - lightness * saturation;
+	double p = 2.0 * lightness - q;
+
+	red = hue_to_rgb(p, q, hue_normalized + 1.0 / 3.0);
+	green = hue_to_rgb(p, q, hue_normalized);
+	blue = hue_to_rgb(p, q, hue_normalized - 1.0 / 3.0);
+}
+
+string derive_dark_mode_color(const string& light_hex) {
+	double red = 0.0;
+	double green = 0.0;
+	double blue = 0.0;
+	if (!parse_hex_color(light_hex, red, green, blue)) {
+		return light_hex;
+	}
+
+	double hue = 0.0;
+	double saturation = 0.0;
+	double lightness = 0.0;
+	rgb_to_hsl(red, green, blue, hue, saturation, lightness);
+
+	double dark_saturation = clamp_double(0.85 * saturation, 0.0, 0.8);
+	double dark_lightness = clamp_double(0.72 - 0.60 * lightness, 0.30, 0.78);
+
+	hsl_to_rgb(hue, dark_saturation, dark_lightness, red, green, blue);
+	return rgb_to_hex(red, green, blue);
+}
+
+static string get_light_palette_color(ThemePaletteRole role) {
+	const char *configured = deadbeef->conf_get_str_fast(palette_color_key(false, role), "");
+	if (isValidHexaCode(configured)) {
+		return configured;
+	}
+
+	const char *legacy = deadbeef->conf_get_str_fast(legacy_color_key(role), default_light_color(role));
+	if (isValidHexaCode(legacy)) {
+		return legacy;
+	}
+
+	return default_light_color(role);
+}
+
+string get_palette_color_for_mode(bool dark_mode, ThemePaletteRole role) {
+	if (!dark_mode) {
+		return get_light_palette_color(role);
+	}
+
+	const char *configured = deadbeef->conf_get_str_fast(palette_color_key(true, role), "");
+	if (isValidHexaCode(configured)) {
+		return configured;
+	}
+
+	return derive_dark_mode_color(get_light_palette_color(role));
+}
+
+static bool theme_name_requests_dark_mode() {
+	GtkSettings *gtk_settings = gtk_settings_get_default();
+	if (!gtk_settings) {
+		return false;
+	}
+
+	gchar *theme_name = nullptr;
+	g_object_get(gtk_settings, "gtk-theme-name", &theme_name, NULL);
+	if (!theme_name) {
+		return false;
+	}
+
+	string lowered_theme_name(theme_name);
+	g_free(theme_name);
+	transform(lowered_theme_name.begin(), lowered_theme_name.end(), lowered_theme_name.begin(), [](unsigned char ch) {
+		return (char)tolower(ch);
+	});
+	return lowered_theme_name.find("-dark") != string::npos;
+}
+
+bool is_dark_mode_active() {
+	if (interface_settings) {
+		gchar *color_scheme = g_settings_get_string(interface_settings, "color-scheme");
+		if (color_scheme) {
+			string color_scheme_value(color_scheme);
+			g_free(color_scheme);
+			if (color_scheme_value == "prefer-dark") {
+				return true;
+			}
+			if (color_scheme_value == "prefer-light") {
+				return false;
+			}
+		}
+	}
+
+	return theme_name_requests_dark_mode();
+}
+
+static string get_active_palette_color(ThemePaletteRole role) {
+	return get_palette_color_for_mode(is_dark_mode_active(), role);
+}
+
+static void apply_background_css() {
+	if (!headerView || !lyricsView) {
+		return;
+	}
+
+	string background_color = get_active_palette_color(ThemePaletteRole::Background);
+	if (!isValidHexaCode(background_color)) {
+		background_color = default_light_color(ThemePaletteRole::Background);
+	}
+
+	string css_config("\
+		#headerView text {\
+		background-color: ");
+	css_config.append(background_color);
+	css_config.append(";\
+		}\
+		#lyricsView text {\
+		background-color: ");
+	css_config.append(background_color);
+	css_config.append(";\
+		}\
+	");
+
+	if (!cssProvider) {
+		cssProvider = Gtk::CssProvider::create();
+		RefPtr<Gdk::Screen> screen = Gdk::Screen::get_default();
+		if (screen) {
+			Gtk::StyleContext::add_provider_for_screen(screen, cssProvider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		}
+	}
+
+	cssProvider->load_from_data(css_config);
+
+	headerView->queue_draw();
+	lyricsView->queue_draw();
+}
+
+void refresh_theme_colors() {
+	if (!lyricsBuffer) {
+		return;
+	}
+
+	get_tags();
+	apply_background_css();
+	if (headerView) {
+		headerView->queue_draw();
+	}
+	if (lyricsView) {
+		lyricsView->queue_draw();
+	}
+}
+
+static void on_system_theme_changed() {
+	signal_idle().connect_once([] {
+		refresh_theme_colors();
+	});
+}
+
+static void on_interface_color_scheme_changed(GSettings *, gchar *, gpointer) {
+	on_system_theme_changed();
+}
+
+static void on_gtk_theme_name_changed(GObject *, GParamSpec *, gpointer) {
+	on_system_theme_changed();
+}
+
+static void initialize_theme_observers() {
+	if (!interface_settings) {
+		GSettingsSchemaSource *schema_source = g_settings_schema_source_get_default();
+		if (schema_source) {
+			GSettingsSchema *schema = g_settings_schema_source_lookup(schema_source, "org.gnome.desktop.interface", TRUE);
+			if (schema) {
+				interface_settings = g_settings_new_full(schema, NULL, NULL);
+				g_settings_schema_unref(schema);
+				interface_settings_handler = g_signal_connect(interface_settings, "changed::color-scheme", G_CALLBACK(on_interface_color_scheme_changed), NULL);
+			}
+		}
+	}
+
+	GtkSettings *gtk_settings = gtk_settings_get_default();
+	if (gtk_settings && gtk_theme_name_handler == 0) {
+		gtk_theme_name_handler = g_signal_connect(gtk_settings, "notify::gtk-theme-name", G_CALLBACK(on_gtk_theme_name_changed), NULL);
+	}
+}
 
 bool isValidHexaCode(string str) {
     regex hexaCode("^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$");
@@ -511,16 +832,18 @@ Justification get_justification() {
 
 	tagForegroundColorHighlight = lyricsBuffer->create_tag();
 	tagForegroundColorRegular = lyricsBuffer->create_tag();
+	string highlight_color = get_active_palette_color(ThemePaletteRole::Highlight);
+	string regular_color = get_active_palette_color(ThemePaletteRole::Regular);
 
-	if (isValidHexaCode(deadbeef->conf_get_str_fast("lyricbar.highlightcolor", "#571c1c"))){
-		tagForegroundColorHighlight->property_foreground() = deadbeef->conf_get_str_fast("lyricbar.highlightcolor", "#571c1c");
+	if (isValidHexaCode(highlight_color)){
+		tagForegroundColorHighlight->property_foreground() = highlight_color;
 	}
 	else{
 		tagForegroundColorHighlight->property_foreground() = "#571c1c";
 	}
 
-	if (isValidHexaCode(deadbeef->conf_get_str_fast("lyricbar.regularcolor", "#000000"))){
-		tagForegroundColorRegular->property_foreground() = deadbeef->conf_get_str_fast("lyricbar.regularcolor", "#000000");
+	if (isValidHexaCode(regular_color)){
+		tagForegroundColorRegular->property_foreground() = regular_color;
 	}
 	else{
 		tagForegroundColorRegular->property_foreground() = "#000000";
@@ -553,6 +876,7 @@ extern "C"
 
 GtkWidget *construct_lyricbar() {
 	Gtk::Main::init_gtkmm_internals();
+	initialize_theme_observers();
 
 	// Create TWO separate buffers
 	headerBuffer = TextBuffer::create();
@@ -603,43 +927,7 @@ GtkWidget *construct_lyricbar() {
 
 	/**********/
 
-	//Create css config text for both views
-	std::string cssconfig("\
-  		#headerView text {\
-  		background-color: ");
-	if (isValidHexaCode(deadbeef->conf_get_str_fast("lyricbar.backgroundcolor", "#F6F6F6"))){
-		cssconfig.append(deadbeef->conf_get_str_fast("lyricbar.backgroundcolor", "#F6F6F6"));
-	}
-	else{
-		cssconfig.append("#F6F6F6");
-	}
-	cssconfig.append(";\
-		}\
-		#lyricsView text {\
-  		background-color: ");
-	if (isValidHexaCode(deadbeef->conf_get_str_fast("lyricbar.backgroundcolor", "#F6F6F6"))){
-		cssconfig.append(deadbeef->conf_get_str_fast("lyricbar.backgroundcolor", "#F6F6F6"));
-	}
-	else{
-		cssconfig.append("#F6F6F6");
-	}
-	cssconfig.append(";\
-		}\
-	");
-
-	//load css
-	auto data = g_strdup_printf("%s", cssconfig.c_str());
-
-	RefPtr<Gtk::CssProvider> cssProvider = Gtk::CssProvider::create();
-	cssProvider->load_from_data(data);
-
-	RefPtr<Gtk::StyleContext> styleContext = Gtk::StyleContext::create();
-
-	//get default screen
-	RefPtr<Gdk::Screen> screen = Gdk::Screen::get_default();
-
-	//add provider for screen in all application
-	styleContext->add_provider_for_screen(screen, cssProvider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	apply_background_css();
 
 
 	return GTK_WIDGET(mainVBox->gobj());
@@ -654,7 +942,7 @@ int message_handler(struct ddb_gtkui_widget_s*, uint32_t id, uintptr_t ctx, uint
 	switch (id) {
 		case DB_EV_CONFIGCHANGED:
 			debug_out << "CONFIG CHANGED\n";
-			get_tags();
+			refresh_theme_colors();
 			signal_idle().connect_once([]{ lyricView->set_justification(get_justification()); });
 			break;
 		case DB_EV_TERMINATE:
@@ -719,6 +1007,7 @@ void lyricbar_destroy() {
 	tagCenter.reset();
 	tagForegroundColorHighlight.reset();
 	tagForegroundColorRegular.reset();
+	cssProvider.reset();
 
 	// Reset buffer RefPtrs
 	headerBuffer.reset();
@@ -733,6 +1022,21 @@ void lyricbar_destroy() {
 	last_highlight_line = -1;
 	lyrics_padding_lines = 0;
 	cached_lyrics_size = -1;
+
+	if (interface_settings) {
+		if (interface_settings_handler != 0) {
+			g_signal_handler_disconnect(interface_settings, interface_settings_handler);
+			interface_settings_handler = 0;
+		}
+		g_object_unref(interface_settings);
+		interface_settings = nullptr;
+	}
+
+	GtkSettings *gtk_settings = gtk_settings_get_default();
+	if (gtk_settings && gtk_theme_name_handler != 0) {
+		g_signal_handler_disconnect(gtk_settings, gtk_theme_name_handler);
+		gtk_theme_name_handler = 0;
+	}
 
 	// Reset flag for potential re-initialization
 	widgets_destroyed.store(false);

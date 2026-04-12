@@ -15,7 +15,19 @@
 
 using namespace std;
 
+enum class ThemePaletteRole {
+	Background,
+	Highlight,
+	Regular,
+};
+
 bool isValidHexaCode(string str);
+
+bool is_dark_mode_active();
+
+string get_palette_color_for_mode(bool dark_mode, ThemePaletteRole role);
+
+string derive_dark_mode_color(const string& light_hex);
 
 void set_lyrics(DB_playItem_t *track, string past, string present, string future, string padding);
 
@@ -26,6 +38,8 @@ void sync_or_unsync(bool syncedlyrics);
 vector<int> sizelines(DB_playItem_t *track, string lyrics);
 
 void get_tags();
+
+void refresh_theme_colors();
 
 extern "C" {
 #endif

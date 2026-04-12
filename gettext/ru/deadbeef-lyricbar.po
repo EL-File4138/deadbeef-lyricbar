@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-24 21:21+0100\n"
+"POT-Creation-Date: 2026-04-12 16:14+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,139 +17,151 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/config_dialog.cpp:267
+#: src/config_dialog.cpp:313
 msgid "Background color: "
 msgstr ""
 
-#: src/config_dialog.cpp:268
+#: src/config_dialog.cpp:314
 msgid "Text color: "
 msgstr ""
 
-#: src/config_dialog.cpp:269
+#: src/config_dialog.cpp:315
 msgid "Highlight color: "
 msgstr ""
 
-#: src/config_dialog.cpp:270
+#: src/config_dialog.cpp:316
+msgid "Light"
+msgstr ""
+
+#: src/config_dialog.cpp:317
+msgid "Dark"
+msgstr ""
+
+#: src/config_dialog.cpp:318
 msgid "Align: "
 msgstr ""
 
-#: src/config_dialog.cpp:271
+#: src/config_dialog.cpp:319
 msgid "Save to: "
 msgstr ""
 
-#: src/config_dialog.cpp:272
+#: src/config_dialog.cpp:320
 msgid "Edge: "
 msgstr ""
 
-#: src/config_dialog.cpp:273
+#: src/config_dialog.cpp:321
 msgid "Highlight line height %: "
 msgstr ""
 
-#: src/config_dialog.cpp:275
+#: src/config_dialog.cpp:322
+msgid "Link"
+msgstr ""
+
+#: src/config_dialog.cpp:324
 msgid "Bold"
 msgstr ""
 
-#: src/config_dialog.cpp:276
+#: src/config_dialog.cpp:325
 msgid "Left"
 msgstr ""
 
-#: src/config_dialog.cpp:277
+#: src/config_dialog.cpp:326
 msgid "Center"
 msgstr ""
 
-#: src/config_dialog.cpp:278
+#: src/config_dialog.cpp:327
 msgid "Right"
 msgstr ""
 
-#: src/config_dialog.cpp:279
+#: src/config_dialog.cpp:328
 msgid "IDTag"
 msgstr ""
 
-#: src/config_dialog.cpp:280
+#: src/config_dialog.cpp:329
 msgid "File"
 msgstr ""
 
-#: src/config_dialog.cpp:281
+#: src/config_dialog.cpp:330
 msgid "No save"
 msgstr ""
 
-#: src/config_dialog.cpp:283
+#: src/config_dialog.cpp:332
 msgid "Config"
 msgstr ""
 
-#: src/config_dialog.cpp:556 src/config_dialog.cpp:566
+#: src/config_dialog.cpp:612 src/config_dialog.cpp:622
 msgid "Lyrics preview"
 msgstr ""
 
-#: src/config_dialog.cpp:557
+#: src/config_dialog.cpp:613
 msgid "Artist: "
 msgstr ""
 
-#: src/config_dialog.cpp:558
+#: src/config_dialog.cpp:614
 msgid "Song: "
 msgstr ""
 
-#: src/config_dialog.cpp:559
+#: src/config_dialog.cpp:615
 msgid "Album "
 msgstr ""
 
-#: src/config_dialog.cpp:560 src/config_dialog.cpp:561
+#: src/config_dialog.cpp:616 src/config_dialog.cpp:617
 msgid "Search"
 msgstr ""
 
-#: src/config_dialog.cpp:562
+#: src/config_dialog.cpp:618
 msgid "Artist"
 msgstr ""
 
-#: src/config_dialog.cpp:563
+#: src/config_dialog.cpp:619
 msgid "Song"
 msgstr ""
 
-#: src/config_dialog.cpp:564
+#: src/config_dialog.cpp:620
 msgid "Album"
 msgstr ""
 
-#: src/config_dialog.cpp:565
+#: src/config_dialog.cpp:621
 msgid "Source"
 msgstr ""
 
-#: src/config_dialog.cpp:856
+#: src/config_dialog.cpp:912
 msgid "Synchronization "
 msgstr ""
 
-#: src/config_dialog.cpp:857
+#: src/config_dialog.cpp:913
 msgid "Sync or not "
 msgstr ""
 
-#: src/config_dialog.cpp:858
+#: src/config_dialog.cpp:914
 msgid "+ 0.1 seconds"
 msgstr ""
 
-#: src/config_dialog.cpp:859
+#: src/config_dialog.cpp:915
 msgid "- 0.1 seconds"
 msgstr ""
 
-#: src/config_dialog.cpp:860
+#: src/config_dialog.cpp:916
 msgid "Apply offset"
 msgstr ""
 
-#: src/config_dialog.cpp:861
+#: src/config_dialog.cpp:917
 msgid "Insert timestamp"
 msgstr ""
 
-#: src/config_dialog.cpp:862
+#: src/config_dialog.cpp:918
 msgid "Synced lyrics"
 msgstr ""
 
-#: src/config_dialog.cpp:863
+#: src/config_dialog.cpp:919
 msgid "Edit"
 msgstr ""
 
-#: src/ui.cpp:234 src/ui.cpp:331 src/ui.cpp:378 src/utils.cpp:677
+#: src/ui.cpp:555 src/ui.cpp:652 src/ui.cpp:699 src/utils.cpp:677
 msgid "Unknown Artist"
 msgstr ""
 
-#: src/ui.cpp:235 src/ui.cpp:332 src/ui.cpp:379 src/utils.cpp:678
+#: src/ui.cpp:556 src/ui.cpp:653 src/ui.cpp:700 src/utils.cpp:678
 msgid "Unknown Title"
 msgstr ""
 

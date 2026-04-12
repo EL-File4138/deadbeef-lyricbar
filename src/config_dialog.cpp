@@ -29,8 +29,11 @@ locale l("");
 GtkWindow		*ConfigWindow;
 GtkBuilder		*builder;
 GtkColorButton	*Background_color;
+GtkColorButton	*Dark_background_color;
 GtkColorButton	*Highlight_color;
+GtkColorButton	*Dark_highlight_color;
 GtkColorButton	*Text_color;
+GtkColorButton	*Dark_text_color;
 GtkRadioButton	*Align_left;
 GtkRadioButton	*Align_center;
 GtkRadioButton	*Align_right;
@@ -40,12 +43,15 @@ GtkRadioButton	*Save_no_save;
 GtkSpinButton	*Highlight_line;
 GtkCheckButton	*Check_bold;
 GtkSpinButton	*Edge;
+GtkButton		*Link_dark_colors;
 GtkButton		*Apply;
 GtkButton		*Cancel;
 GtkButton		*OK;
 GtkLabel		*Background_color_label;
 GtkLabel		*Text_color_label;
 GtkLabel		*Highlight_color_label;
+GtkLabel		*Light_mode_label;
+GtkLabel		*Dark_mode_label;
 GtkLabel		*Align_label;
 GtkLabel		*Save_method_label;
 GtkLabel		*Highlight_line_label;
@@ -54,6 +60,8 @@ GtkLabel		*Edge_label;
 int Align_int_value;
 int Save_method_int_value;
 int Check_bold_int_value;
+
+void set_chooser_color(GtkColorButton *chooser, const char *hexColor );
 
 // - Search widgets
 
@@ -112,41 +120,73 @@ GtkTextBuffer		*refBuffer;
 //******************* ConfigWindow ************************************
 //---------------------------------------------------------------------
 
-void	on_Background_color_color_set (GtkColorButton *c) {
+static void set_palette_color(bool dark_mode, ThemePaletteRole role, const char *hex_color) {
+	deadbeef->conf_set_str(
+		dark_mode ?
+			(role == ThemePaletteRole::Background ? "lyricbar.dark.backgroundcolor" :
+			 role == ThemePaletteRole::Highlight ? "lyricbar.dark.highlightcolor" : "lyricbar.dark.regularcolor") :
+			(role == ThemePaletteRole::Background ? "lyricbar.light.backgroundcolor" :
+			 role == ThemePaletteRole::Highlight ? "lyricbar.light.highlightcolor" : "lyricbar.light.regularcolor"),
+		hex_color
+	);
+}
+
+static string chooser_color_to_hex(GtkColorButton *chooser) {
 	GdkRGBA color;
 	int Red, Green, Blue;
-	gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER(c), &color);
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(chooser), &color);
 	Red = color.red*255 + 0.5;
 	Green = color.green*255 + 0.5;
 	Blue = color.blue*255 + 0.5;
 	char hexColor[8];
     std::snprintf(hexColor, sizeof hexColor, "#%02x%02x%02x", Red, Green, Blue);
-	deadbeef->conf_set_str("lyricbar.backgroundcolor", hexColor);
+	return hexColor;
+}
+
+static void save_chooser_palette_color(GtkColorButton *chooser, bool dark_mode, ThemePaletteRole role) {
+	string hex_color = chooser_color_to_hex(chooser);
+	set_palette_color(dark_mode, role, hex_color.c_str());
+	refresh_theme_colors();
+}
+
+void	on_Background_color_color_set (GtkColorButton *c) {
+	save_chooser_palette_color(c, false, ThemePaletteRole::Background);
 }
 
 void	on_Highlight_color_color_set (GtkColorButton *c) {
-	GdkRGBA color;
-	int Red, Green, Blue;
-	gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER(c), &color);
-	Red = color.red*255 + 0.5;
-	Green = color.green*255 + 0.5;
-	Blue = color.blue*255 + 0.5;
-	char hexColor[8];
-    std::snprintf(hexColor, sizeof hexColor, "#%02x%02x%02x", Red, Green, Blue);
-	deadbeef->conf_set_str("lyricbar.highlightcolor", hexColor);
+	save_chooser_palette_color(c, false, ThemePaletteRole::Highlight);
 	}
 
 void	on_Text_color_color_set (GtkColorButton *c) {
-	GdkRGBA color;
-	int Red, Green, Blue;
-	gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER(c), &color);
-	Red = color.red*255 + 0.5;
-	Green = color.green*255 + 0.5;
-	Blue = color.blue*255 + 0.5;
-	char hexColor[8];
-    std::snprintf(hexColor, sizeof hexColor, "#%02x%02x%02x", Red, Green, Blue);
-	deadbeef->conf_set_str("lyricbar.regularcolor", hexColor);
+	save_chooser_palette_color(c, false, ThemePaletteRole::Regular);
 	}
+
+void	on_Dark_background_color_color_set (GtkColorButton *c) {
+	save_chooser_palette_color(c, true, ThemePaletteRole::Background);
+}
+
+void	on_Dark_highlight_color_color_set (GtkColorButton *c) {
+	save_chooser_palette_color(c, true, ThemePaletteRole::Highlight);
+}
+
+void	on_Dark_text_color_color_set (GtkColorButton *c) {
+	save_chooser_palette_color(c, true, ThemePaletteRole::Regular);
+}
+
+void on_Link_dark_colors_clicked(GtkButton *) {
+	string dark_background = derive_dark_mode_color(chooser_color_to_hex(Background_color));
+	string dark_highlight = derive_dark_mode_color(chooser_color_to_hex(Highlight_color));
+	string dark_text = derive_dark_mode_color(chooser_color_to_hex(Text_color));
+
+	set_palette_color(true, ThemePaletteRole::Background, dark_background.c_str());
+	set_palette_color(true, ThemePaletteRole::Highlight, dark_highlight.c_str());
+	set_palette_color(true, ThemePaletteRole::Regular, dark_text.c_str());
+
+	set_chooser_color(Dark_background_color, dark_background.c_str());
+	set_chooser_color(Dark_highlight_color, dark_highlight.c_str());
+	set_chooser_color(Dark_text_color, dark_text.c_str());
+	refresh_theme_colors();
+}
 
 void	on_Align_toggled(GtkRadioButton *b) {
 	
@@ -202,7 +242,7 @@ void	on_Apply_clicked (GtkButton *b) {
 	deadbeef->conf_set_int("save_method", Save_method_int_value);
 	deadbeef->conf_set_int("lyricbar.vpostion", gtk_spin_button_get_value (GTK_SPIN_BUTTON(Highlight_line)));
 	deadbeef->conf_set_int("lyricbar.border", gtk_spin_button_get_value (GTK_SPIN_BUTTON(Edge)));
-	get_tags();
+	refresh_theme_colors();
 	//gtk_label_set_text (GTK_LABEL(Title), (const gchar* ) "Apply");
 }
 
@@ -240,11 +280,15 @@ int on_button_config (GtkMenuItem *menuitem, gpointer user_data) {
 
 //	Widgets creation:
 	Background_color 		= GTK_COLOR_BUTTON(gtk_builder_get_object(builder, "Background_color"));
+	Dark_background_color 	= GTK_COLOR_BUTTON(gtk_builder_get_object(builder, "Dark_background_color"));
 	Highlight_color 		= GTK_COLOR_BUTTON(gtk_builder_get_object(builder, "Highlight_color"));
+	Dark_highlight_color 	= GTK_COLOR_BUTTON(gtk_builder_get_object(builder, "Dark_highlight_color"));
 	Text_color 				= GTK_COLOR_BUTTON(gtk_builder_get_object(builder, "Text_color"));
+	Dark_text_color 		= GTK_COLOR_BUTTON(gtk_builder_get_object(builder, "Dark_text_color"));
 	Highlight_line 			= GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "Highlight_line"));
 	Edge 					= GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "Edge"));
 	Check_bold				= GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "Check_bold"));
+	Link_dark_colors		= GTK_BUTTON(gtk_builder_get_object(builder, "Link_dark_colors"));
 	Align_left 				= GTK_RADIO_BUTTON(gtk_builder_get_object(builder, "Align_left"));
 	Align_center 			= GTK_RADIO_BUTTON(gtk_builder_get_object(builder, "Align_center"));
 	Align_right 			= GTK_RADIO_BUTTON(gtk_builder_get_object(builder, "Align_right"));
@@ -257,6 +301,8 @@ int on_button_config (GtkMenuItem *menuitem, gpointer user_data) {
 	Background_color_label	= GTK_LABEL(gtk_builder_get_object(builder, "Background_color_label"));
 	Text_color_label		= GTK_LABEL(gtk_builder_get_object(builder, "Text_color_label"));
 	Highlight_color_label	= GTK_LABEL(gtk_builder_get_object(builder, "Highlight_color_label"));
+	Light_mode_label		= GTK_LABEL(gtk_builder_get_object(builder, "Light_mode_label"));
+	Dark_mode_label			= GTK_LABEL(gtk_builder_get_object(builder, "Dark_mode_label"));
 	Align_label				= GTK_LABEL(gtk_builder_get_object(builder, "Align_label"));
 	Save_method_label		= GTK_LABEL(gtk_builder_get_object(builder, "Save_method_label"));
 	Edge_label				= GTK_LABEL(gtk_builder_get_object(builder, "Edge_label"));
@@ -267,10 +313,13 @@ int on_button_config (GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_label_set_label(Background_color_label, _("Background color: "));
 	gtk_label_set_label(Text_color_label, _("Text color: "));
 	gtk_label_set_label(Highlight_color_label, _("Highlight color: "));
+	gtk_label_set_label(Light_mode_label, _("Light"));
+	gtk_label_set_label(Dark_mode_label, _("Dark"));
 	gtk_label_set_label(Align_label, _("Align: "));
 	gtk_label_set_label(Save_method_label, _("Save to: "));
 	gtk_label_set_label(Edge_label, _("Edge: "));
 	gtk_label_set_label(Highlight_line_label, _("Highlight line height %: "));
+	gtk_button_set_label(Link_dark_colors, _("Link"));
 	
 	gtk_button_set_label(GTK_BUTTON(Check_bold), _("Bold"));
 	gtk_button_set_label(GTK_BUTTON(Align_left), _("Left"));
@@ -291,8 +340,12 @@ int on_button_config (GtkMenuItem *menuitem, gpointer user_data) {
 	g_signal_connect(ConfigWindow, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	gtk_builder_connect_signals(builder, NULL);
 	g_signal_connect(Background_color, "color-set", G_CALLBACK(on_Background_color_color_set), NULL);
+	g_signal_connect(Dark_background_color, "color-set", G_CALLBACK(on_Dark_background_color_color_set), NULL);
 	g_signal_connect(Highlight_color, "color-set", G_CALLBACK(on_Highlight_color_color_set), NULL);
+	g_signal_connect(Dark_highlight_color, "color-set", G_CALLBACK(on_Dark_highlight_color_color_set), NULL);
 	g_signal_connect(Text_color, "color-set", G_CALLBACK(on_Text_color_color_set), NULL);
+	g_signal_connect(Dark_text_color, "color-set", G_CALLBACK(on_Dark_text_color_color_set), NULL);
+	g_signal_connect(Link_dark_colors, "clicked", G_CALLBACK(on_Link_dark_colors_clicked), NULL);
 	g_signal_connect(Align_left, "toggled", G_CALLBACK(on_Align_toggled), NULL);
 	g_signal_connect(Align_center, "toggled", G_CALLBACK(on_Align_toggled), NULL);
 	g_signal_connect(Align_right, "toggled", G_CALLBACK(on_Align_toggled), NULL);
@@ -305,9 +358,12 @@ int on_button_config (GtkMenuItem *menuitem, gpointer user_data) {
 	g_signal_connect(Apply, "clicked", G_CALLBACK(on_Apply_clicked), NULL);
 
 //	Saved color to choosers:
-	set_chooser_color(Background_color, deadbeef->conf_get_str_fast("lyricbar.backgroundcolor", "#F6F6F6"));
-	set_chooser_color(Highlight_color, deadbeef->conf_get_str_fast("lyricbar.highlightcolor", "#571c1c"));
-	set_chooser_color(Text_color, deadbeef->conf_get_str_fast("lyricbar.regularcolor", "#000000"));
+	set_chooser_color(Background_color, get_palette_color_for_mode(false, ThemePaletteRole::Background).c_str());
+	set_chooser_color(Dark_background_color, get_palette_color_for_mode(true, ThemePaletteRole::Background).c_str());
+	set_chooser_color(Highlight_color, get_palette_color_for_mode(false, ThemePaletteRole::Highlight).c_str());
+	set_chooser_color(Dark_highlight_color, get_palette_color_for_mode(true, ThemePaletteRole::Highlight).c_str());
+	set_chooser_color(Text_color, get_palette_color_for_mode(false, ThemePaletteRole::Regular).c_str());
+	set_chooser_color(Dark_text_color, get_palette_color_for_mode(true, ThemePaletteRole::Regular).c_str());
 
 // Saved value to spin buttons:
 	gtk_spin_button_set_value(Highlight_line, deadbeef->conf_get_int("lyricbar.vpostion", 50));
