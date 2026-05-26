@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-24 21:17+0100\n"
+"POT-Creation-Date: 2026-04-12 16:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,274 +17,286 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/config_dialog.cpp:267
+#: src/config_dialog.cpp:402
 msgid "Background color: "
 msgstr ""
 
-#: src/config_dialog.cpp:268
+#: src/config_dialog.cpp:403
 msgid "Text color: "
 msgstr ""
 
-#: src/config_dialog.cpp:269
+#: src/config_dialog.cpp:404
 msgid "Highlight color: "
 msgstr ""
 
-#: src/config_dialog.cpp:270
+#: src/config_dialog.cpp:405
+msgid "Light"
+msgstr ""
+
+#: src/config_dialog.cpp:406
+msgid "Dark"
+msgstr ""
+
+#: src/config_dialog.cpp:407
 msgid "Align: "
 msgstr ""
 
-#: src/config_dialog.cpp:271
+#: src/config_dialog.cpp:408
 msgid "Save to: "
 msgstr ""
 
-#: src/config_dialog.cpp:272
+#: src/config_dialog.cpp:409
 msgid "Edge: "
 msgstr ""
 
-#: src/config_dialog.cpp:273
+#: src/config_dialog.cpp:410
 msgid "Highlight line height %: "
 msgstr ""
 
-#: src/config_dialog.cpp:275
+#: src/config_dialog.cpp:411
+msgid "Link"
+msgstr ""
+
+#: src/config_dialog.cpp:413
 msgid "Bold"
 msgstr ""
 
-#: src/config_dialog.cpp:276
+#: src/config_dialog.cpp:414
 msgid "Left"
 msgstr ""
 
-#: src/config_dialog.cpp:277
+#: src/config_dialog.cpp:415
 msgid "Center"
 msgstr ""
 
-#: src/config_dialog.cpp:278
+#: src/config_dialog.cpp:416
 msgid "Right"
 msgstr ""
 
-#: src/config_dialog.cpp:279
+#: src/config_dialog.cpp:417
 msgid "IDTag"
 msgstr ""
 
-#: src/config_dialog.cpp:280
+#: src/config_dialog.cpp:418
 msgid "File"
 msgstr ""
 
-#: src/config_dialog.cpp:281
+#: src/config_dialog.cpp:419
 msgid "No save"
 msgstr ""
 
-#: src/config_dialog.cpp:283
+#: src/config_dialog.cpp:421
 msgid "Config"
 msgstr ""
 
-#: src/config_dialog.cpp:556 src/config_dialog.cpp:566
-msgid "Lyrics preview"
-msgstr ""
-
-#: src/config_dialog.cpp:557
-msgid "Artist: "
-msgstr ""
-
-#: src/config_dialog.cpp:558
-msgid "Song: "
-msgstr ""
-
-#: src/config_dialog.cpp:559
-msgid "Album "
-msgstr ""
-
-#: src/config_dialog.cpp:560 src/config_dialog.cpp:561
-msgid "Search"
-msgstr ""
-
-#: src/config_dialog.cpp:562
-msgid "Artist"
-msgstr ""
-
-#: src/config_dialog.cpp:563
-msgid "Song"
-msgstr ""
-
-#: src/config_dialog.cpp:564
-msgid "Album"
-msgstr ""
-
-#: src/config_dialog.cpp:565
-msgid "Source"
-msgstr ""
-
-#: src/config_dialog.cpp:856
-msgid "Synchronization "
-msgstr ""
-
-#: src/config_dialog.cpp:857
-msgid "Sync or not "
-msgstr ""
-
-#: src/config_dialog.cpp:858
-msgid "+ 0.1 seconds"
-msgstr ""
-
-#: src/config_dialog.cpp:859
-msgid "- 0.1 seconds"
-msgstr ""
-
-#: src/config_dialog.cpp:860
-msgid "Apply offset"
-msgstr ""
-
-#: src/config_dialog.cpp:861
-msgid "Insert timestamp"
-msgstr ""
-
-#: src/config_dialog.cpp:862
-msgid "Synced lyrics"
-msgstr ""
-
-#: src/config_dialog.cpp:863
-msgid "Edit"
-msgstr ""
-
-#: src/ui.cpp:237 src/ui.cpp:334 src/ui.cpp:381 src/utils.cpp:677
-msgid "Unknown Artist"
-msgstr ""
-
-#: src/ui.cpp:238 src/ui.cpp:335 src/ui.cpp:382 src/utils.cpp:678
-msgid "Unknown Title"
-msgstr ""
-
-#: src/utils.cpp:84
-msgid "Error with lyrics file or metadata"
-msgstr ""
-
-#: src/utils.cpp:554
-msgid "Listened once"
-msgstr ""
-
-#: src/utils.cpp:558
-msgid "Listened "
-msgstr ""
-
-#: src/utils.cpp:560
-msgid " times"
-msgstr ""
-
-#: src/utils.cpp:566
-msgid "For the first time "
-msgstr ""
-
-#: src/utils.cpp:569 src/utils.cpp:583
-msgid "at "
-msgstr ""
-
-#: src/utils.cpp:574
-msgid "Never listened before"
-msgstr ""
-
-#: src/utils.cpp:580
-msgid "For the last time the "
-msgstr ""
-
-#: src/utils.cpp:593
-msgid "There is one file in line"
-msgstr ""
-
-#: src/utils.cpp:597
-msgid "There are "
-msgstr ""
-
-#: src/utils.cpp:599
-msgid " files in line"
-msgstr ""
-
-#: src/utils.cpp:604
-msgid "Publisher: "
-msgstr ""
-
-#: src/utils.cpp:619
-msgid "Released date: "
-msgstr ""
-
-#: src/utils.cpp:625
-msgid "Genre: "
-msgstr ""
-
-#: src/utils.cpp:631
-msgid "Creators:"
-msgstr ""
-
-#: src/utils.cpp:698
+#: src/config_dialog.cpp:593 src/ui.cpp:964 src/utils.cpp:764
 msgid "Loading..."
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:158
+#: src/config_dialog.cpp:717 src/config_dialog.cpp:727
+msgid "Lyrics preview"
+msgstr ""
+
+#: src/config_dialog.cpp:718
+msgid "Artist: "
+msgstr ""
+
+#: src/config_dialog.cpp:719
+msgid "Song: "
+msgstr ""
+
+#: src/config_dialog.cpp:720
+msgid "Album "
+msgstr ""
+
+#: src/config_dialog.cpp:721 src/config_dialog.cpp:722
+msgid "Search"
+msgstr ""
+
+#: src/config_dialog.cpp:723
+msgid "Artist"
+msgstr ""
+
+#: src/config_dialog.cpp:724
+msgid "Song"
+msgstr ""
+
+#: src/config_dialog.cpp:725
+msgid "Album"
+msgstr ""
+
+#: src/config_dialog.cpp:726
+msgid "Source"
+msgstr ""
+
+#: src/config_dialog.cpp:1020
+msgid "Synchronization "
+msgstr ""
+
+#: src/config_dialog.cpp:1021
+msgid "Sync or not "
+msgstr ""
+
+#: src/config_dialog.cpp:1022
+msgid "+ 0.1 seconds"
+msgstr ""
+
+#: src/config_dialog.cpp:1023
+msgid "- 0.1 seconds"
+msgstr ""
+
+#: src/config_dialog.cpp:1024
+msgid "Apply offset"
+msgstr ""
+
+#: src/config_dialog.cpp:1025
+msgid "Insert timestamp"
+msgstr ""
+
+#: src/config_dialog.cpp:1026
+msgid "Synced lyrics"
+msgstr ""
+
+#: src/config_dialog.cpp:1027
+msgid "Edit"
+msgstr ""
+
+#: src/ui.cpp:555 src/ui.cpp:652 src/ui.cpp:699 src/utils.cpp:727
+msgid "Unknown Artist"
+msgstr ""
+
+#: src/ui.cpp:556 src/ui.cpp:653 src/ui.cpp:700 src/utils.cpp:728
+msgid "Unknown Title"
+msgstr ""
+
+#: src/utils.cpp:100
+msgid "Error with lyrics file or metadata"
+msgstr ""
+
+#: src/utils.cpp:587
+msgid "Listened once"
+msgstr ""
+
+#: src/utils.cpp:591
+msgid "Listened "
+msgstr ""
+
+#: src/utils.cpp:593
+msgid " times"
+msgstr ""
+
+#: src/utils.cpp:599
+msgid "For the first time "
+msgstr ""
+
+#: src/utils.cpp:602 src/utils.cpp:616
+msgid "at "
+msgstr ""
+
+#: src/utils.cpp:607
+msgid "Never listened before"
+msgstr ""
+
+#: src/utils.cpp:613
+msgid "For the last time the "
+msgstr ""
+
+#: src/utils.cpp:626
+msgid "There is one file in line"
+msgstr ""
+
+#: src/utils.cpp:630
+msgid "There are "
+msgstr ""
+
+#: src/utils.cpp:632
+msgid " files in line"
+msgstr ""
+
+#: src/utils.cpp:637
+msgid "Publisher: "
+msgstr ""
+
+#: src/utils.cpp:652
+msgid "Released date: "
+msgstr ""
+
+#: src/utils.cpp:658
+msgid "Genre: "
+msgstr ""
+
+#: src/utils.cpp:664
+msgid "Creators:"
+msgstr ""
+
+#: src/sources/lrcmusic163.cpp:199
 msgid "LYRICS: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:159
+#: src/sources/lrcmusic163.cpp:200
 msgid "COMPOSER: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:160
+#: src/sources/lrcmusic163.cpp:201
 msgid "RECORDING ENGINEER: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:161
+#: src/sources/lrcmusic163.cpp:202
 msgid "AUDIO ENGINEER: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:162
+#: src/sources/lrcmusic163.cpp:203
 msgid "ASSISTANT ENGINEER: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:163
+#: src/sources/lrcmusic163.cpp:204
 msgid "MIXING: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:164
+#: src/sources/lrcmusic163.cpp:205
 msgid "MUSICAL PERFORMER: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:165
+#: src/sources/lrcmusic163.cpp:206
 msgid "MASTER ENGINEER: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:166
+#: src/sources/lrcmusic163.cpp:207
 msgid "PRODUCER: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:167
+#: src/sources/lrcmusic163.cpp:208
 msgid "POST-PRODUCER: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:168
+#: src/sources/lrcmusic163.cpp:209
 msgid "BASS: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:169
+#: src/sources/lrcmusic163.cpp:210
 msgid "ADDITIONAL PRODUCTION: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:170
+#: src/sources/lrcmusic163.cpp:211
 msgid "VOICE: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:171
+#: src/sources/lrcmusic163.cpp:212
 msgid "GUITAR: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:172
+#: src/sources/lrcmusic163.cpp:213
 msgid "KEYBOARDS: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:173
+#: src/sources/lrcmusic163.cpp:214
 msgid "DRUMS: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:174
+#: src/sources/lrcmusic163.cpp:215
 msgid "PROGRAMMING: "
 msgstr ""
 
-#: src/sources/lrcmusic163.cpp:175
+#: src/sources/lrcmusic163.cpp:216
 msgid "MIX ASSISTANT: "
 msgstr ""

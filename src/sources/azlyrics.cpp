@@ -26,10 +26,20 @@ vector<string> azlyrics_get_songs(string song,string artist){
 	  	results = split(bulk_results,"{\"url\":\"");
 		for(size_t i = 0; i < results.size() -1; i++) {
 				vector<string> sub_results = split(results[i+1],"\",\"autocomplete\":\"\\\"");
+				if (sub_results.size() < 2) {
+					continue;
+				}
 				string song_url = sub_results[0];
 				vector<string> artist = split(sub_results[1], "\\\"  - ");
+				if (artist.size() < 2) {
+					continue;
+				}
 				string artist_clean = artist[1];
-				artist_clean = split(artist_clean,"\"}")[0];
+				vector<string> artist_split = split(artist_clean,"\"}");
+				if (artist_split.empty()) {
+					continue;
+				}
+				artist_clean = artist_split[0];
 				string song_clean = artist[0];
 				song_clean.erase(remove(song_clean.begin(), song_clean.end(), '\\'), song_clean.end());
 				song_url.erase(remove(song_url.begin(), song_url.end(), '\\'), song_url.end());
@@ -52,7 +62,13 @@ struct parsed_lyrics azlyrics_lyrics_downloader(string url){
 	bool synced = false;
 
 	results = split(text_downloader(slist, url, ""),"<div>");
+	if (results.size() < 2) {
+		return {"", synced};
+	}
 	results = split(results[1],"</div>");
+	if (results.empty()) {
+		return {"", synced};
+	}
 	results = split(results[0],"\n");
 
 	for (size_t i = 2; i < results.size() - 1; i++) {

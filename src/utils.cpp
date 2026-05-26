@@ -14,6 +14,7 @@
 #include <string>
 #include <pthread.h>
 #include <mutex>
+#include <atomic>
 
 
 using namespace std;
@@ -27,6 +28,9 @@ using namespace std;
 
 mutex mtx;
 
+static atomic<uint64_t> lyrics_generation {0};
+static thread_local uint64_t request_generation = 0;
+
 int death_signal = 0;
 bool lyricstart = false;
 bool syncedlyrics = false;
@@ -37,6 +41,18 @@ vector<int> linessizes;
 struct sync lrc;
 
 struct timespec ts = {0, 50000000};
+
+uint64_t lyricbar_invalidate_lyrics_requests() {
+	return lyrics_generation.fetch_add(1, memory_order_acq_rel) + 1;
+}
+
+uint64_t lyricbar_current_lyrics_generation() {
+	return lyrics_generation.load(memory_order_acquire);
+}
+
+bool lyricbar_is_generation_stale(uint64_t generation) {
+	return generation != lyricbar_current_lyrics_generation();
+}
 
 // For debug:
 
@@ -194,14 +210,9 @@ void write_synced( DB_playItem_t *it){
 
 // Main loop to update lyrics on real time.
 void thread_listener(DB_playItem_t *track){
-
-	if ((is_playing(track)) && death_signal == 0){
+	while ((is_playing(track)) && death_signal == 0) {
 		nanosleep(&ts, NULL);
 		write_synced(track);
-		thread_listener(track);
-	}
-	else{
-		pthread_exit (NULL);
 	}
 }
 
@@ -331,8 +342,19 @@ std::string replace_string(string subject, const string& search, const string& r
 }
 
 size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-    ((string*)userp)->append((char*)contents, size * nmemb);
+	if (!userp) {
+		return 0;
+	}
+	((string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
+}
+
+static int lyricbar_xferinfo_cb(void *clientp, curl_off_t, curl_off_t, curl_off_t, curl_off_t) {
+	if (!clientp) {
+		return 0;
+	}
+	const auto generation = *static_cast<uint64_t *>(clientp);
+	return lyricbar_is_generation_stale(generation) ? 1 : 0;
 }
 
 // Function to split strings.
@@ -352,11 +374,17 @@ vector<string> split(string s, string delimiter) {
 
 // Function to parse webpages.
 string text_downloader(curl_slist *slist, string url, string post) {
+	const uint64_t generation_snapshot = request_generation;
+	if (generation_snapshot != 0 && lyricbar_is_generation_stale(generation_snapshot)) {
+		return "";
+	}
+
 	CURL *curl_handle;
 	curl_handle = curl_easy_init();
 	string readBuffer = "";
 	if (curl_handle) {	
-		curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 600);
+		curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 20L);
+		curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, 5L);
 		curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
 		curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, 0);
 		curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 0);
@@ -364,6 +392,11 @@ string text_downloader(curl_slist *slist, string url, string post) {
 		curl_easy_setopt(curl_handle, CURLOPT_ENCODING, NULL);
 		curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, false);
 		curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, slist);
+		if (generation_snapshot != 0) {
+			curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 0L);
+			curl_easy_setopt(curl_handle, CURLOPT_XFERINFOFUNCTION, lyricbar_xferinfo_cb);
+			curl_easy_setopt(curl_handle, CURLOPT_XFERINFODATA, &generation_snapshot);
+		}
 		if (post != ""){
 			curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
 		    curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, post.c_str());
@@ -658,8 +691,24 @@ void set_info(DB_playItem_t *track) {
 void update_lyrics(void *tr) {
 	// linessizes no longer needed - removed
 	DB_playItem_t *track = static_cast<DB_playItem_t*>(tr);
+	if (!track) {
+		return;
+	}
+
+	const uint64_t generation = lyricbar_current_lyrics_generation();
+	request_generation = generation;
+
+	if (lyricbar_is_generation_stale(generation)) {
+		deadbeef->pl_item_unref(track);
+		return;
+	}
+
 	struct parsed_lyrics meta_lyrics = get_lyrics_from_metadata(track);
 	if (meta_lyrics.lyrics != "") {
+		if (lyricbar_is_generation_stale(generation)) {
+			deadbeef->pl_item_unref(track);
+			return;
+		}
 		if (meta_lyrics.sync == true) {
 			chopset_lyrics(track, meta_lyrics.lyrics);
 		}
@@ -667,11 +716,12 @@ void update_lyrics(void *tr) {
 			set_lyrics(track, "", "", meta_lyrics.lyrics, "");
 		}
 		sync_or_unsync(meta_lyrics.sync);
+		deadbeef->pl_item_unref(track);
 	return;
 	}
 
-	const char *artist;
-	const char *title;
+	string artist;
+	string title;
 	{
 		deadbeef->pl_lock();
 		artist = deadbeef->pl_find_meta(track, "artist") ?: _("Unknown Artist");
@@ -679,12 +729,21 @@ void update_lyrics(void *tr) {
 		deadbeef->pl_unlock();
 	}
 
+	if (lyricbar_is_generation_stale(generation)) {
+		deadbeef->pl_item_unref(track);
+		return;
+	}
 
 
-	if (artist && title) {
+
+	if (!artist.empty() && !title.empty()) {
 		struct parsed_lyrics cached_lyrics = get_lyrics_next_to_file(track);
 
 		if (cached_lyrics.lyrics != "") {
+			if (lyricbar_is_generation_stale(generation)) {
+				deadbeef->pl_item_unref(track);
+				return;
+			}
 			if (cached_lyrics.sync == true) {
 				chopset_lyrics(track, cached_lyrics.lyrics);
 			}
@@ -692,19 +751,30 @@ void update_lyrics(void *tr) {
 				set_lyrics(track, "", "", cached_lyrics.lyrics, "");
 			}
 			sync_or_unsync(cached_lyrics.sync);
+			deadbeef->pl_item_unref(track);
 			return;
 		}
 	}
+
+	if (lyricbar_is_generation_stale(generation)) {
+		deadbeef->pl_item_unref(track);
+		return;
+	}
+
 	set_lyrics(track, "", "", _("Loading..."), "");
 
 //	 No lyrics in the tag or cache; try to get some and cache if succeeded.
-//	Search for lyrics on LRCLIB:
-    if (deadbeef->conf_get_float("lyricbar.fontscale", 1) == 1){
-    	struct parsed_lyrics lrclib_lyrics = {"",false};
-    	lrclib_lyrics = lrclib(string(title), string(artist), "");
-    	if (lrclib_lyrics.lyrics != "") {
-    		if (lrclib_lyrics.sync){
-    			chopset_lyrics(track, lrclib_lyrics.lyrics);
+//	Search for lyrics on LRCLIB (when auto search is enabled):
+	if (deadbeef->conf_get_int("lyricbar.autosearch.enable", 1) == 1){
+		struct parsed_lyrics lrclib_lyrics = {"",false};
+		lrclib_lyrics = lrclib(title, artist, "");
+		if (lyricbar_is_generation_stale(generation)) {
+			deadbeef->pl_item_unref(track);
+			return;
+		}
+		if (lrclib_lyrics.lyrics != "") {
+			if (lrclib_lyrics.sync){
+				chopset_lyrics(track, lrclib_lyrics.lyrics);
 
 	    	}
 		    else{
@@ -719,11 +789,16 @@ void update_lyrics(void *tr) {
 	    	    save_next_to_file(track, lrclib_lyrics);
 	    	}
 	    	
-	    	return;
-    	}
-    }
+	    		return;
+		}
+	}
+	if (lyricbar_is_generation_stale(generation)) {
+		deadbeef->pl_item_unref(track);
+		return;
+	}
 //	If no lyrics founded in any site, show track info:
 	set_info(track);
+	deadbeef->pl_item_unref(track);
 }
 
 //---------------------------------------------------------------------

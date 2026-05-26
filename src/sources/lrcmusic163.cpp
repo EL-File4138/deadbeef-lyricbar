@@ -61,10 +61,14 @@ vector<string> music_163_get_songs(string song, string artist) {
 	bulk_results = text_downloader(slist,url, "");
 	
 	if (bulk_results.find(empty_search) == std::string::npos && bulk_results.find(twohundred_search) == std::string::npos){
-  	    string artist;
-  	    string album;
+	  	string artist;
+	  	string album;
         // Get all inside {"songs":[...]}
-        bulk_results = inside_brackets(bulk_results, '[', ']')[0];
+		vector<string> song_blocks = inside_brackets(bulk_results, '[', ']');
+		if (song_blocks.empty()) {
+			return artists_and_songs;
+		}
+		bulk_results = song_blocks[0];
         // Divide in songs by {...},{...},...
         vector<string> Balanced = inside_brackets(bulk_results, '{', '}');
         
@@ -73,24 +77,52 @@ vector<string> music_163_get_songs(string song, string artist) {
             // Divide every songs in subsections by {...},{...},... too.
             vector<string> entry_chopped = inside_brackets(entry,'{', '}');
             
-            for (size_t i = 0; i < entry_chopped.size(); i++) {
-               string subbracket = entry_chopped[i];
+			for (size_t i = 0; i < entry_chopped.size(); i++) {
+		       string subbracket = entry_chopped[i];
                // Check if subsection is preceded by "artist" or by "album" to get properly and extract it.
                
-                if (entry.substr(entry.find(subbracket) - 9,9) == "tists\":[{") {
-                    subbracket = split(subbracket, "\"name\":\"")[1];
-                    artist = split(subbracket, "\",\"")[0];
-                }
-                else if (entry.substr(entry.find(subbracket) - 9,9) == "\"album\":{") {
-                    subbracket = split(subbracket, "\"name\":\"")[1];
-                    album = split(subbracket, "\",\"")[0];
-                }
-                entry.erase(entry.find(entry_chopped[i]), entry_chopped[i].size());
-            }
-            string song_url = split(entry, "\"id\":")[1];
-            song_url = split(song_url, ",")[0];
-            string song_clean = split(entry, ",\"name\":\"")[1];
-            song_clean = split(song_clean, "\",")[0];
+				size_t pos = entry.find(subbracket);
+				if (pos == string::npos || pos < 9) {
+					continue;
+				}
+				if (entry.substr(pos - 9,9) == "tists\":[{") {
+					vector<string> name_split = split(subbracket, "\"name\":\"");
+					if (name_split.size() > 1) {
+						vector<string> artist_split = split(name_split[1], "\",\"");
+						if (!artist_split.empty()) {
+							artist = artist_split[0];
+						}
+					}
+				}
+				else if (entry.substr(pos - 9,9) == "\"album\":{") {
+					vector<string> name_split = split(subbracket, "\"name\":\"");
+					if (name_split.size() > 1) {
+						vector<string> album_split = split(name_split[1], "\",\"");
+						if (!album_split.empty()) {
+							album = album_split[0];
+						}
+					}
+				}
+				entry.erase(pos, entry_chopped[i].size());
+			}
+			vector<string> song_url_split = split(entry, "\"id\":");
+			if (song_url_split.size() < 2) {
+				continue;
+			}
+			vector<string> song_url_field = split(song_url_split[1], ",");
+			if (song_url_field.empty()) {
+				continue;
+			}
+			string song_url = song_url_field[0];
+			vector<string> song_name_split = split(entry, ",\"name\":\"");
+			if (song_name_split.size() < 2) {
+				continue;
+			}
+			vector<string> song_name_field = split(song_name_split[1], "\",");
+			if (song_name_field.empty()) {
+				continue;
+			}
+			string song_clean = song_name_field[0];
             //Artist,song,Album, url to lyrics.
 			artists_and_songs.push_back(artist);
 			artists_and_songs.push_back(song_clean);
@@ -113,16 +145,25 @@ struct parsed_lyrics music_163_lyrics_downloader(string trackid) {
 	slist = curl_slist_append(slist, "app-platform: WebPlayer");
 	string url = "https://music.163.com/api/song/lyric?_nmclfl=1";
 	results = inside_brackets(text_downloader(slist, url, "id=" + trackid + "&tv=-1&lv=-1&rv=-1&kv=-1"), '{', '}');
+	if (results.empty()) {
+		return {"", synced};
+	}
 	all_text = results[0];
 	results = inside_brackets(results[0], '{', '}');
 	for (size_t i = 0; i < results.size(); i++) {
-	    if (all_text.substr(all_text.find(results[i]) - 7,7) == "\"lrc\":{") {
-	        string_lyrics = split(results[i], "\"lyric\":\"")[1];
+		size_t pos = all_text.find(results[i]);
+		if (pos != string::npos && pos >= 7 && all_text.substr(pos - 7,7) == "\"lrc\":{") {
+			vector<string> lyric_split = split(results[i], "\"lyric\":\"");
+			if (lyric_split.size() > 1) {
+				string_lyrics = lyric_split[1];
+			}
 	    }
 	}
 	results = split(string_lyrics,"\\n");
 	string_lyrics = replace_string(string_lyrics, "\\n", "\n");
-    string_lyrics.pop_back();
+	if (!string_lyrics.empty()) {
+		string_lyrics.pop_back();
+	}
     
     int total_lines = 1;
 	int timestamped_lines = 1;

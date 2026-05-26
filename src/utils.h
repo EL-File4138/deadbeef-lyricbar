@@ -15,6 +15,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 using namespace std;
 
@@ -32,6 +33,12 @@ struct sync{
 	vector<string> synclyrics;
 	vector<double> position;
 };
+
+uint64_t lyricbar_invalidate_lyrics_requests();
+
+uint64_t lyricbar_current_lyrics_generation();
+
+bool lyricbar_is_generation_stale(uint64_t generation);
 
 struct chopped{
 	string past;

@@ -46,7 +46,13 @@ vector<string> megalobiz_get_songs(string song,string artist){
     
 		for(size_t i = 0; i < results.size(); i++) {
 			if (results[i]=="		<div class=\"entity_full_member_image\" >"){
+				if (i + 1 >= results.size()) {
+					continue;
+				}
 				vector<string> sub_results = split(results[i+1],"\"");
+				if (sub_results.size() < 4) {
+					continue;
+				}
 				artists_and_songs.push_back(sub_results[1]);
 				artists_and_songs.push_back(sub_results[3]);
 			}
@@ -64,13 +70,16 @@ vector<string> megalobiz_get_songs(string song,string artist){
 
 			int hyphen_freq = countFreq(hyphen,artists_and_songs[i+1]);
 			int by_freq = countFreq(by,artists_and_songs[i+1]);
-			if ((hyphen_freq = 0) || (by_freq > 0)){
+			if ((hyphen_freq == 0) || (by_freq > 0)){
 				vector<string> a_s;
 				if (hyphen_freq > 0){
 					a_s = split(artists_and_songs[i+1],hyphen);
 				}
 				if (by_freq > 0){
 					a_s = split(artists_and_songs[i+1],by);
+				}
+				if (a_s.size() < 2) {
+					continue;
 				}
 //				Artist,song,Album (empty), url to lyrics.
 				clean_songs.push_back(a_s[1]);
@@ -98,8 +107,11 @@ struct parsed_lyrics megalobiz_lyrics_downloader(string partial_url){
 	for(size_t i = 0; i < results.size(); i++) {
 		if (results[i]=="[re:www.megalobiz.com/lrc/maker]<br>"){
 			size_t j = i + 1;
-			while (results[j].find(span) == std::string::npos){
+			while (j < results.size() && results[j].find(span) == std::string::npos){
 				j++;
+				if (j >= results.size()) {
+					break;
+				}
 				string_lyrics.append(results[j]);
 				string_lyrics.append("\n");
 			}
@@ -123,7 +135,9 @@ struct parsed_lyrics megalobiz(string song,string artist) {
 //	Download first result:
 	struct parsed_lyrics string_lyrics = {"",false};
 	
-	string_lyrics = megalobiz_lyrics_downloader(results[0]);
+	if (!results.empty()) {
+		string_lyrics = megalobiz_lyrics_downloader(results[0]);
+	}
 
 
 

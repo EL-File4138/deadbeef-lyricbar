@@ -20,42 +20,42 @@ struct curl_slist *slist = NULL;
 
 
 vector<string> lrclib_get_songs(string song, string artist, string album, int duration) {
-	string artist_and_song;
 	string bulk_results;
 	vector<string> results;
-	vector<string> artists_and_songs, clean_songs;
+	vector<string> artists_and_songs;
 	string empty_search = "[]";
 	string url = "https://lrclib.net/api/search?artist_name=" + urlencode(artist) + "&track_name=" + urlencode(song);
 	if (album != ""){
-	url = url + "&album_name=" + album;
+	url = url + "&album_name=" + urlencode(album);
 	}
 	if (duration != 0){
 	    url = url + "&duration=" + to_string(duration);
 	}
 	bulk_results = text_downloader(slist, url, "");
 	//cout << bulk_results << "\n";
-	if (bulk_results.find(empty_search) == std::string::npos) {
+	if (!bulk_results.empty() && bulk_results.find(empty_search) == std::string::npos) {
 	  	results = split(bulk_results,"},{");
 		for(long unsigned int i = 0; i < results.size(); i++) {
 			//cout << results[i] << "\n";
 			if (results[i].find("id") != std::string::npos) {
 				vector<string> sub_results = split(results[i],":");
+				if (sub_results.size() < 7) {
+					continue;
+				}
 				vector<string> id = split(sub_results[1],",");
 				//cout << "ID: " << id[0] << "\n";
-				vector<string> name = split(sub_results[2],",");
-				//cout << "Name: " << name[0] << "\n";
 				vector<string> trackname = split(sub_results[3],",");
 				//cout << "Trackname: " << trackname[0] << "\n";
-				vector<string> artist = split(sub_results[4],",");
-				//cout << "Artistname: " << artist[0] << "\n";
-				vector<string> album = split(sub_results[5],",");
-				//cout << "Album: " << album[0] << "\n";
-				vector<string> duration = split(sub_results[6],",");
-				//cout << "Duration: " << duration[0] << "\n";
-				artists_and_songs.push_back(artist[0]);
-				artists_and_songs.push_back(trackname[0]);
-				artists_and_songs.push_back(album[0]);
-				artists_and_songs.push_back(id[0]);
+				vector<string> result_artist = split(sub_results[4],",");
+				//cout << "Artistname: " << result_artist[0] << "\n";
+				vector<string> result_album = split(sub_results[5],",");
+				//cout << "Album: " << result_album[0] << "\n";
+				if (!result_artist.empty() && !trackname.empty() && !result_album.empty() && !id.empty()) {
+					artists_and_songs.push_back(result_artist[0]);
+					artists_and_songs.push_back(trackname[0]);
+					artists_and_songs.push_back(result_album[0]);
+					artists_and_songs.push_back(id[0]);
+				}
 			}
 		}
 	}
@@ -71,7 +71,10 @@ struct parsed_lyrics lrclib_lyrics_downloader(string trackid) {
 	bool synced = true;
 	slist = curl_slist_append(slist, "app-platform: WebPlayer");
 	url = "https://lrclib.net//api/get/" + trackid;
-  	lyrics = split(text_downloader(slist,url, ""),"{");
+	  	lyrics = split(text_downloader(slist,url, ""),"{");
+	if (lyrics.size() < 2) {
+		return {"", false};
+	}
 	lyrics_split = split(lyrics[1],"\",\"syncedLyrics\":\"");
 	string string_lyrics = "";
 //	cout << lyrics_split[0] << "\n";

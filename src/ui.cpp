@@ -948,6 +948,7 @@ int message_handler(struct ddb_gtkui_widget_s*, uint32_t id, uintptr_t ctx, uint
 		case DB_EV_TERMINATE:
 			debug_out << "DEADBEEF CLOSED \n";
 			death_signal = 1;
+			lyricbar_invalidate_lyrics_requests();
 			break;
 //		case DB_EV_TRACKINFOCHANGED:
 //			debug_out << "TRACKINFOCHANGED" << "\n";
@@ -960,6 +961,9 @@ int message_handler(struct ddb_gtkui_widget_s*, uint32_t id, uintptr_t ctx, uint
 				return 0;
 			}
 			last = event->track;
+			set_lyrics(event->track, "", "", _("Loading..."), "");
+			lyricbar_invalidate_lyrics_requests();
+			deadbeef->pl_item_ref(event->track);
 //			std::cout << "SONG STARTED" << "\n";
 			auto tid = deadbeef->thread_start(update_lyrics, event->track);
 			deadbeef->thread_detach(tid);

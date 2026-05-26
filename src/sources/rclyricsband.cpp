@@ -36,8 +36,11 @@ vector<string> rclyricsband_get_songs(string song,string artist){
 	bulk_results = text_downloader(slist,url, "search=" + song + " " + artist);
 	
 	if (bulk_results.find("<h2 class=\"head_results\">Songs</h2>") != std::string::npos){
-	    int start_position = bulk_results.find("<h2 class=\"head_results\">Songs</h2>");
-	    int finish_position = bulk_results.find("</a></li>            </div>");
+	    size_t start_position = bulk_results.find("<h2 class=\"head_results\">Songs</h2>");
+	    size_t finish_position = bulk_results.find("</a></li>            </div>");
+	    if (start_position == string::npos || finish_position == string::npos || finish_position <= start_position + 35) {
+	    	return artists_and_songs;
+	    }
 	    int range = finish_position - start_position;
 //	    To eliminate also "<h2 class=\"head_results\">Songs</h2>" is neccesary to add an remove 35 characters.
 		bulk_results = bulk_results.substr(start_position + 35, range - 35);
@@ -45,10 +48,20 @@ vector<string> rclyricsband_get_songs(string song,string artist){
 	  	
 		for(size_t i = 0; i < results.size() - 1; i++) {
 		    vector<string> sub_results = split(results[i+1],"' class='song_search'>");
+			if (sub_results.size() < 2) {
+				continue;
+			}
 			string song_url = sub_results[0];
 			vector<string> artist = split(sub_results[1], " - ");
+			if (artist.size() < 2) {
+				continue;
+			}
 			string artist_clean = artist[1];
-			artist_clean = split(artist_clean,"</")[0];
+			vector<string> artist_clean_parts = split(artist_clean,"</");
+			if (artist_clean_parts.empty()) {
+				continue;
+			}
+			artist_clean = artist_clean_parts[0];
 			string song_clean = artist[0];
 //			Artist,song,Album (empty), url to lyrics.
 			artists_and_songs.push_back(artist_clean);
@@ -70,7 +83,13 @@ struct parsed_lyrics rclyricsband_lyrics_downloader(string url){
 	slist = curl_slist_append(slist, "Accept-Charset: utf-8");
 	url = "https://rclyricsband.com/" + url;
 	results = split(text_downloader(slist, url, ""),"<p id='lrc_text' class='lrc_text_format'>");
+	if (results.size() < 2) {
+		return {"", synced};
+	}
 	results = split(results[1],"RCLyricsBand.Com</p>");
+	if (results.empty()) {
+		return {"", synced};
+	}
 	string_lyrics = replace_string(results[0], "<br>", "\n");
 	string_lyrics = htmlEntitiesDecode(string_lyrics);
 
